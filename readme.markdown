@@ -1,10 +1,14 @@
+Note: This product is tentatively named 'Salve'. Anywhere you see 'Salve' in
+the documentation, you can read that as 'the virus scanner'.
+
+
 # Salve
-(ClamAV)[http://www.clamav.net/index.html] for your S3.
+[ClamAV](http://www.clamav.net/index.html) for your S3.
 
 Salve runs a small node process that polls SQS for S3 notifications. It then
 fetches the S3 object and scans it, reporting the results on SNS topics.
 
-# getting started
+# getting started (development)
 
 Install the dependencies.
 
@@ -26,8 +30,8 @@ $> freshclam
 Then clone the repo and install the other dependencies.
 
 ```
-$> git clone <whatever this repo is called>
-$> cd <the repo>
+$> git clone https://github.com/execonline-inc/antivirus.git
+$> cd antivirus
 $> npm install
 ```
 
@@ -49,40 +53,56 @@ Then run the script.
 $> node index.js
 ```
 
-# the file on it's jouney...
+# the file on it's journey...
 
 Here's a diagram of how Salve fits into your infrastructure.
 
-![a diagram](https://raw.github.com/USER_NAME/REPO/master/assets/diagram.jpg)
+![a diagram](https://github.com/execonline-inc/antivirus/blob/master/assets/diagram.jpg)
 
 When an object is created, S3 sends out a notification event. We push these
-notifications to SNS topics so we can receive the notifications in multiple
-places (for example, we use lambda to format and resize new images).
+notifications to an SNS topic. The benefit of SNS is that we can have
+multiple services subscribed to the same topic. For examples, a lambda that
+resizes images, a process that indexes PDF contents for searching, and this
+virus scanner can all handle the same S3 event at the same time.
 
-We subscribe an SQS queue to these topics. SQS is used so that we can get
-some level of persistence, in case a file is added while Salve is down.
+SNS topics offer no guarantees of delivery. They are fire and forget. If the
+virus scanner happens to be down when a S3 object event if published, then that
+S3 object will not be scanned. This just won't do.
 
-Salve polls for notifications. When it receives one, it downloads the file
-and scans it.
+Instead of subscribing directly to the SNS topic, we creates an SQS queue, and
+subscribe _that_ to the S3 events topic. SQS queues offer message persistence
+(up to four day, by default) and have configurable dead leader fail over. Our
+virus scanner long polls the SQS queue, instead of subscribing directly to SNS.
+This offers us greatly increased confidence that we will not miss scanning a
 
-When a scanned file is clean (no virus detected), we push a notification out
-on a "clean" SNS topic.
+When the scanner receives an S3 event from the queue, it downloads the object
+from S3 and scans it.
 
-When a scanned file is infected (a virus was detected), we push a notficiation
-out on an "infected" SNS topic.
+If a scanned file is clean (no virus detected), we push a notification out
+on a "clean" SNS topic. When a scanned file is infected (a virus was detected),
+we push a notification out on an "infected" SNS topic.
 
-The infected topic and the clean topic can be configured to be the same topic,
-depending on your needs.
+The infected topic and the clean topic don't have to be different topic in
+practice, but we've logically separated them so that it is easier to configure
+the virus scanner to suit your needs.
 
 Anything that can subscribe to SNS topics can be used for further processing of
 infected (or clean!) files. For example, an AWS Lambda function could be
-triggered to quarantine infected S3 objects.
+triggered to quarantine infected S3 objects, or an http endpoint could be called
+that updates the list of infected files in a database.
 
 # deployment stories
 
 Salve is just node, so it can be deployed anyway you would normally deploy
-node applications, but for convenience, we've included a Dockerfile. To use
-the Dockerfile, you first need to (install Docker)[https://docs.docker.com/installation/]
+node applications.
+
+For convenience, we've included a Dockerfile. Docker images provide a
+convenient deployment artifact. You can build and test your environment
+locally, and then deploy _that exact_ environment anywhere docker images
+are supported.
+
+To use the Dockerfile, you first need to
+[install Docker](https://docs.docker.com/installation/)
 
 Build the docker image:
 
@@ -96,6 +116,28 @@ You can run the docker build locally as a container.
 $> docker run --env-file some/path/to/salve/environment/file salve
 ```
 
-If you're satisfied with how the Salve runs locally, then the docker image
-can be deployed in any environment that supports docker. For example, this
-docker image should be deployable to AWS Elastic Beanstalk.
+Salve was first deployed using Elastic Beanstalk, an autoscaling, low
+management computing environment offered by AWS. We've also included a
+command to build a package suitable for deploying in this environment.
+
+```
+$> npm run package
+# generates `deploy.zip`
+```
+
+# deployment checklist
+
+- Create SNS topics (first time)
+  - S3 events
+  - Infected files
+  - Clean files
+- Create SQS queue and subscribe to S3 events topic (first time)
+- Upload `deploy.zip` to Elastic Beanstalk
+  - Configure environment variables (first time only)
+
+One you have your environment configured, then a new deploy is as simple as
+uploading an new `deploy.zip`.
+
+Elastic Beanstalk is already connected to CloudWatch, where you can set whatever
+alerts are appropriate. It is also an autoscaling environment, so it is easy
+to scale up instances based on your file scanning volume.
