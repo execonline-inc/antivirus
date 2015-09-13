@@ -1,0 +1,23 @@
+{
+  "name": "s3-antivirus",
+  "version": "1.0.0",
+  "description": "Anti-virus scanning virtual appliance for s3",
+  "main": "index.js",
+  "scripts": {
+    "test": "./node_modules/.bin/tape 'test/**/*.js' | ./node_modules/.bin/faucet",
+    "package": "rm -f deploy.zip && npm install && npm prune && zip -r deploy ./*  -x './node_modules/*'" 
+  },
+  "author": "Ryan L. Bell",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.1.49",
+    "bluebird": "^2.9.34",
+    "clam-engine": "^1.0.4",
+    "mkdirp": "^0.5.1",
+    "ramda": "^0.17.1"
+  },
+  "devDependencies": {
+    "faucet": "0.0.1",
+    "tape": "^4.2.0"
+  }
+}
