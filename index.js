@@ -46,13 +46,15 @@ var loop = function(engine) {
   };
 };
 
+var fetchFromS3 = R.compose(S3.fetchObject, S3.details);
+
 // poll : Engine -> Promise Void
 var poll = function(engine) {
   return SQS.fetchMessages()
   .map(function(message) {
     return Promise.resolve(R.identity(message))
     .then(SQS.messageContent)
-    .then(S3.fetchObject)
+    .then(fetchFromS3)
     .then(fops.writeFile)
     .then(clamp.scanFile(engine))
     .then(fops.removeFile)
