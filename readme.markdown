@@ -61,19 +61,20 @@ Here's a diagram of how Salve fits into your infrastructure.
 
 When an object is created, S3 sends out a notification event. We push these
 notifications to an SNS topic. The benefit of SNS is that we can have
-multiple services subscribed to the same topic. For examples, a lambda that
-resizes images, a process that indexes PDF contents for searching, and this
+multiple services subscribed to the same topic. For example, a lambda that
+resizes images; a process that indexes PDF contents for searching; and this
 virus scanner can all handle the same S3 event at the same time.
 
 SNS topics offer no guarantees of delivery. They are fire and forget. If the
-virus scanner happens to be down when a S3 object event if published, then that
+virus scanner happens to be down when an S3 object event is published, then that
 S3 object will not be scanned. This just won't do.
 
-Instead of subscribing directly to the SNS topic, we creates an SQS queue, and
+Instead of subscribing directly to the SNS topic, we create an SQS queue, and
 subscribe _that_ to the S3 events topic. SQS queues offer message persistence
-(up to four day, by default) and have configurable dead leader fail over. Our
+(up to four days, by default) and have configurable dead letter fail over. Our
 virus scanner long polls the SQS queue, instead of subscribing directly to SNS.
 This offers us greatly increased confidence that we will not miss scanning a
+file.
 
 When the scanner receives an S3 event from the queue, it downloads the object
 from S3 and scans it.
@@ -82,7 +83,7 @@ If a scanned file is clean (no virus detected), we push a notification out
 on a "clean" SNS topic. When a scanned file is infected (a virus was detected),
 we push a notification out on an "infected" SNS topic.
 
-The infected topic and the clean topic don't have to be different topic in
+The infected topic and the clean topic don't have to be different topics in
 practice, but we've logically separated them so that it is easier to configure
 the virus scanner to suit your needs.
 
@@ -116,6 +117,17 @@ You can run the docker build locally as a container.
 $> docker run --env-file some/path/to/salve/environment/file salve
 ```
 
+Note: If you run Salve locally, your env-file needs to look something like this:
+
+```
+AWS_ACCESS_KEY_ID=<AWS access key>
+AWS_SECRET_ACCESS_KEY=<AWS secret key... shhhh!>
+AWS_REGION=us-east-1
+AWS_AV_QUEUE=https://some-sqs-queue/url
+AWS_AV_CLEAN_TOPIC=some-topic-arn
+AWS_AV_INFECTED_TOPIC=another-or-possibly-the-same-topic-arn
+```
+
 Salve was first deployed using Elastic Beanstalk, an autoscaling, low
 management computing environment offered by AWS. We've also included a
 command to build a package suitable for deploying in this environment.
@@ -141,3 +153,21 @@ uploading an new `deploy.zip`.
 Elastic Beanstalk is already connected to CloudWatch, where you can set whatever
 alerts are appropriate. It is also an autoscaling environment, so it is easy
 to scale up instances based on your file scanning volume.
+
+# a word about coding paradigms
+
+You'll note two key design decisions in this code:
+
+- The use of a declarative, functional style built on the excellent ramda
+  library.
+- All asynchronous code is handled by Promises.
+
+We felt that this was an appropriate approach in this case since we are really
+just building a data processing pipeline.
+
+The functional style allowed us to elegantly compose the necessary behaviors
+from primitives provided by Ramda. This left us writing very little code
+ourselves.
+
+Promises allowed us to easily compose and sequence several asynchronous,
+operations without falling into deeply nested callbacks.
