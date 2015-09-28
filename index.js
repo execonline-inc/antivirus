@@ -10,6 +10,8 @@ var updater   = require('./lib/updater');
 var http      = require('./lib/server');
 var timestamp = require('./lib/timestamp');
 
+updater.updateVirusDB();
+
 // log : Object -> Void
 var log = function(a) {
   console.log(timestamp() + ": ", a);
@@ -17,19 +19,29 @@ var log = function(a) {
 
 // error : Object -> Void
 var error = function(a) {
-  console.error(timestamp() + ": ", a);
+  console.error(timestamp() + ": ", "Error!", a);
 };
 
-// For now, if there's an exception, we want to crash and restart, but we
-// want to log the error first.
+// When there's an error, we log the error data and delete
+// the SQS message if possible. If the message can't be deleted,
+// then this was an unexpected error and we will just crash and
+// restart.
 //
-// TODO: Handle errors more gracefully, by specifically handling certain,
-//       expected error types.
+// TODO: Consider pushing errors out to SNS topics, to be consumed
+//       elsewhere.
 //
-// handleErr : Error -> Void
-var handleErr = function(err) {
+// handleErr : Engine -> Error -> Void
+var handleErr = R.curry(function(engine, err) {
   error(err);
-  process.exit(1); // oh noes!
+
+  Promise.resolve(R.identity(err))
+  .then(SQS.deleteMessage)
+  .then(loop(engine))
+  .catch(exit);
+});
+
+var exit = function() {
+  process.exit(1);
 };
 
 // Drop into a Promise chain to see what's there.
@@ -63,7 +75,7 @@ var poll = function(engine) {
   })
   .then(log)
   .then(loop(engine))
-  .catch(handleErr);
+  .catch(handleErr(engine));
 };
 
 clam.createEngine(function(err, engine) {
