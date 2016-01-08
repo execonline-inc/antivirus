@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "./node_modules/.bin/tape 'test/**/*.js' | ./node_modules/.bin/faucet",
-    "package": "rm -f deploy.zip && npm install && npm prune && zip -r deploy ./*  -x './node_modules/*'" 
+    "package": "rm -f deploy.zip && npm install && npm prune && zip -r deploy ./*  -x './node_modules/*'"
   },
   "author": "Ryan L. Bell",
+  "contributors": "Execonline, Inc.",
   "license": "MIT",
   "dependencies": {
     "aws-sdk": "^2.1.49",
@@ -19,5 +20,12 @@
   "devDependencies": {
     "faucet": "0.0.1",
     "tape": "^4.2.0"
-  }
+  },
+  "keywords": ["S3", "AWS", "anti-virus", "antivirus", "clamav"],
+  "bugs": "https://github.com/execonline-inc/antivirus/issues",
+  "repository":
+    { "type": "git"
+    , "url": "https://github.com/execonline-inc/antivirus.git"
+    },
+  "homepage": "https://github.com/execonline-inc/antivirus"
 }
