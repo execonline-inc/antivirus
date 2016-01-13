@@ -54,7 +54,7 @@ $> node index.js
 
 Here's a diagram of how S3-antivirus fits into your infrastructure.
 
-![a diagram](https://github.com/execonline-inc/antivirus/blob/master/assets/diagram.jpg)
+![a diagram](https://raw.githubusercontent.com/execonline-inc/antivirus/master/assets/diagram.jpg)
 
 When S3 adds an object it sends out a notification event. We push these
 notifications to an SNS topic. The benefit of SNS is that we can have
