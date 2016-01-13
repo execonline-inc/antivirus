@@ -1,12 +1,9 @@
-Note: This product is tentatively named 'Salve'. Anywhere you see 'Salve' in
-the documentation, you can read that as 'the virus scanner'.
+# S3-antivirus (code named: Salve)
 
-
-# Salve
 [ClamAV](http://www.clamav.net/index.html) for your S3.
 
-Salve runs a small node process that polls SQS for S3 notifications. It then
-fetches the S3 object and scans it, reporting the results on SNS topics.
+S3-antivirus runs a small node process that polls SQS for S3 notifications. It
+then fetches the S3 object and scans it, reporting the results on SNS topics.
 
 # getting started (development)
 
@@ -55,7 +52,7 @@ $> node index.js
 
 # the file on it's journey...
 
-Here's a diagram of how Salve fits into your infrastructure.
+Here's a diagram of how S3-antivirus fits into your infrastructure.
 
 ![a diagram](https://github.com/execonline-inc/antivirus/blob/master/assets/diagram.jpg)
 
@@ -89,7 +86,8 @@ files.
 
 # deployment stories
 
-Salve is just node, so deploy it anyway you would deploy node applications.
+S3-antivirus is just node, so deploy it anyway you would deploy node
+applications.
 
 For convenience, we've included a Dockerfile. Docker images provide a
 convenient deployment artifact. You can build and test your environment on
@@ -111,7 +109,8 @@ You can run the docker build as a container.
 $> docker run --env-file some/path/to/salve/environment/file salve
 ```
 
-Note: Running Salve this way requires an env file. The env-file format is this:
+Note: Running S3-antivirus this way requires an env file. The env-file format
+is this:
 
 ```
 AWS_ACCESS_KEY_ID=<AWS access key>
@@ -122,9 +121,9 @@ AWS_AV_CLEAN_TOPIC=some-topic-arn
 AWS_AV_INFECTED_TOPIC=another-or-possibly-the-same-topic-arn
 ```
 
-Salve was first deployed using Elastic Beanstalk. Elastic Beanstalk is a low
-management computing environment offered by AWS. We've included a command to
-build a package suitable for deploying in this environment.
+S3-antivirus was first deployed using Elastic Beanstalk. Elastic Beanstalk is
+a low management computing environment offered by AWS. We've included a command
+to build a package suitable for deploying in this environment.
 
 ```
 $> npm run package
