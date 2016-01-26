@@ -84,6 +84,17 @@ the virus scanner to suit your needs.
 Anything that can subscribe to SNS topics can process infected (or clean!)
 files.
 
+# updating virus signatures
+
+Worried about keeping the virus signature database up-to-date? We've got that
+covered, too.
+
+Clamav uses a tool called `freshclam` to update the signature database. We
+ran that earlier to initialize a virus database for development. S3-antivirus
+runs `freshclam` whenever the server launches. It then continues to run it
+approximately every two hours. Your virus signatures will never be more then
+a couple a hours out of date.
+
 # deployment stories
 
 S3-antivirus is just node, so deploy it anyway you would deploy node
