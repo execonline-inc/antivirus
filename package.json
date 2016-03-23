@@ -13,7 +13,7 @@
   "dependencies": {
     "aws-sdk": "^2.1.49",
     "bluebird": "^2.9.34",
-    "clam-engine": "^1.0.4",
+    "clam-engine": "^2.0.1",
     "mkdirp": "^0.5.1",
     "ramda": "^0.17.1"
   },
