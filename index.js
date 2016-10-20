@@ -35,10 +35,20 @@ var handleErr = R.curry(function(engine, err) {
   error(err);
 
   Promise.resolve(R.identity(err))
-  .then(SQS.deleteMessage)
   .then(loop(engine))
   .catch(exit);
 });
+
+// handleSyntaxErr : Message -> Error -> Void
+var handleSyntaxErr = R.curry(function(message, err) {
+  error(err);
+  error("SYNTAX ERROR - deleting message: " + JSON.stringify(message));
+
+  Promise.resolve(R.identity(message))
+  .then(SQS.getMessageHandle)
+  .then(SQS.deleteMessage);
+});
+
 
 var exit = function() {
   process.exit(1);
@@ -71,7 +81,8 @@ var poll = function(engine) {
     .then(clamp.scanFile(engine))
     .then(fops.removeFile)
     .then(SNS.sendScanResults)
-    .then(SQS.deleteMessage);
+    .then(SQS.deleteMessage)
+    .catch(handleSyntaxErr(message));
   })
   .then(log)
   .then(loop(engine))
